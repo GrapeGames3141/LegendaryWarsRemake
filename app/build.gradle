@@ -1,0 +1,49 @@
+plugins {
+    id 'com.android.application'
+}
+
+def ciVersionCode = (project.findProperty('versionCode') ?: '1') as int
+
+android {
+    namespace 'com.gemfall.legions'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.gemfall.legions'
+        minSdk 26
+        targetSdk 34
+        versionCode ciVersionCode
+        versionName "1.0.${ciVersionCode}"
+    }
+
+    // A shared, publicly committed signing key so every CI build can be
+    // installed as an update over the previous one. It protects nothing secret.
+    signingConfigs {
+        shared {
+            storeFile rootProject.file('keystore/gemfall-shared.jks')
+            storePassword 'gemfall'
+            keyAlias 'gemfall'
+            keyPassword 'gemfall'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.shared
+        }
+        debug {
+            signingConfig signingConfigs.shared
+        }
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

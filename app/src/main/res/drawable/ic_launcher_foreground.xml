@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- crossed sword -->
+    <path android:fillColor="#E8EEF6" android:strokeColor="#2A1A0E" android:strokeWidth="1.5"
+        android:pathData="M33,31 L37,29 L66,62 L63,66 Z" />
+    <path android:fillColor="#C8962A" android:strokeColor="#2A1A0E" android:strokeWidth="1.5"
+        android:pathData="M58,64 L66,56 L69,59 L61,67 Z M64,64 L71,71 L68,74 L61,67 Z" />
+    <!-- shield -->
+    <path android:fillColor="#2A5CC4" android:strokeColor="#2A1A0E" android:strokeWidth="2"
+        android:pathData="M38,40 L70,40 L70,58 Q70,74 54,82 Q38,74 38,58 Z" />
+    <path android:fillColor="#FFD040"
+        android:pathData="M42,44 L66,44 L66,48 L42,48 Z" />
+    <!-- gem -->
+    <path android:fillColor="#5AE0FF" android:strokeColor="#2A1A0E" android:strokeWidth="2"
+        android:pathData="M54,30 L64,40 L54,66 L44,40 Z" />
+    <path android:fillColor="#B8F4FF" android:pathData="M54,30 L44,40 L51,40 Z" />
+    <path android:fillColor="#2A8AD0" android:pathData="M54,30 L64,40 L57,40 Z" />
+</vector>
