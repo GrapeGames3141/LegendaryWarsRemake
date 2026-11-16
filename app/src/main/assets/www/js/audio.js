@@ -1,4 +1,4 @@
-/* Gemfall Legions - synthesized sound effects & music (WebAudio, no asset files) */
+/* Ridiculous Wars - synthesized sound effects & music (WebAudio, no asset files) */
 (function () {
   'use strict';
   const S = G.audio = {};

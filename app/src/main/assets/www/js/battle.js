@@ -1,4 +1,4 @@
-/* Gemfall Legions - battle simulation & rendering */
+/* Ridiculous Wars - battle simulation & rendering */
 (function () {
   'use strict';
   const A = G.art;
@@ -9,6 +9,16 @@
   const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
   let UID = 1;
+  const ENEMY_QUIPS = ['Per my last email!', 'Let\'s take this offline!', 'Synergy!', 'You\'re on my calendar now.', 'Who approved this?', 'I\'ll need that in triplicate.', 'Circle back THIS!', 'New policy: you lose.', 'Is this billable?', 'Reply-all to DEATH!'];
+  const POWS = ['BONK!', 'WHAM!', 'POW!', 'SMACK!', 'THWACK!', 'KAPOW!'];
+  const SLIDES = [
+    ['Q3 SYNERGY ROADMAP', ['Leverage evil', 'Circle back to doom', 'Pizza Friday (cancelled)']],
+    ['WHY YOU WILL LOSE', ['Slide 1 of 94', 'Our values: paperwork', 'Clip art of a dragon']],
+    ['TEAM-BUILDING AGENDA', ['Icebreaker: despair', 'Trust fall (no catching)', 'Mandatory fun']],
+    ['ORG CHART (UPDATED)', ['You report to us now', 'Kevin is on there for some reason', 'Questions? No.']]
+  ];
+  const CHICKEN_LOOK = { kind: 'chicken', tier: 1 };
+  const WIZZLE_SPELLS = ['meteor', 'freeze', 'heal', 'lightning', 'gems', 'chickens'];
 
   function heightOf(look) {
     const s = look.size || 1;
@@ -22,6 +32,11 @@
       case 'wraith': return 72;
       case 'drake': return 140;
       case 'wyrm': return 150;
+      case 'binder': return 118;
+      case 'unicorn': return 98;
+      case 'chicken': return 90;
+      case 'printer': return 60;
+      case 'plane': return 62;
       default: return 72 * s;
     }
   }
@@ -48,7 +63,9 @@
       this.valor = 0; this.valorMax = 250;
       this.valorMult = 1 + 0.12 * up.valor;
       this.maxDiggers = 3 + up.miners;
-      this.armyCap = 30;
+      this.armyCap = 40;
+      this.serious = !!G.save.data.settings.serious;
+      this.quipCd = 0; this.pows = []; this.castleHit = false;
       this.towerLvl = up.tower;
       this.towerCd = 2;
       this.cdMult = 1 - 0.06 * up.drill;
@@ -66,7 +83,7 @@
       this.gemTimer = 6;
       this.passiveTimer = 0;
       // cards
-      this.cards = ['digger'].concat(cfg.lineup.filter(id => id !== 'digger')).map(id => ({ id: id, cd: 0 }));
+      this.cards = [G.MINER].concat(cfg.lineup.filter(id => id !== G.MINER)).map(id => ({ id: id, cd: 0 }));
       this.spells = G.SPELL_ORDER.filter(id => sd.spells[id] > 0).map(id => ({ id: id, cd: 6, level: sd.spells[id] }));
       // enemy scaling
       if (this.endless) { this.hpM = 1; this.atkM = 1; }
@@ -77,7 +94,7 @@
       // fortress (siege)
       this.fortX = this.W - 120;
       if (this.kind === 'siege') {
-        this.fortMax = Math.round((1200 + this.idx * 380) * this.diff.hp);
+        this.fortMax = Math.round((1200 + this.idx * 380) * this.diff.hp * (this.idx < 6 ? 0.75 : 1));
         this.fortHp = this.fortMax;
       }
       this.setupDirector();
@@ -143,7 +160,7 @@
         budget = 6 + w * 2.6;
         if (w % 10 === 0) {
           this.queue.push({ type: this.region.boss, lane: 1, at: this.time + 3, boss: true });
-          this.showBanner(G.ENEMIES[this.region.boss].name + ' approaches!', '#ff6a5a');
+          this.showBanner(G.ENEMIES[this.region.boss].name.split(',')[0] + ' approaches!', '#ff6a5a');
           G.audio.play('boss'); G.audio.music('boss');
         }
       } else {
@@ -167,7 +184,7 @@
           const elapsed = this.time / 90;
           this.queue = this.queue.concat(this.makeGroupList((2.2 + this.idx * 0.42) * (1 + elapsed * 0.6), this.time));
           this.siegeTimer = Math.max(5.5, 9 - this.idx * 0.06);
-          if (this.wave === 0) { this.wave = 1; this.showBanner('Destroy the enemy fortress!', '#ffe27a'); }
+          if (this.wave === 0) { this.wave = 1; this.showBanner('Demolish the Branch Office!', '#ffe27a'); }
         }
         return;
       }
@@ -182,7 +199,8 @@
         this.bossSpawned = true;
         const boss = this.spawnEnemy(this.region.boss, 1);
         this.boss = boss;
-        this.showBanner(boss.def.name + ' appears!', '#ff6a5a');
+        this.showBanner(boss.def.name.split(',')[0] + ' has joined the meeting!', '#ff6a5a');
+        if (boss.def.abilities && boss.def.abilities[0].line) this.say(boss, boss.def.abilities[0].line, 3, true);
         G.audio.play('boss'); G.audio.music('boss');
         this.escortTimer = 14;
       }
@@ -205,11 +223,12 @@
         rate: def.rate, range: def.range, speed: def.speed * rand(0.92, 1.08), armor: def.armor || 0,
         proj: def.proj, splash: def.splash, healer: def.healer, slowAmt: def.proj === 'frost' ? 0.3 : 0,
         rad: def.boss ? 40 : 12, h: heightOf(look), cd: rand(0.2, 0.8), atkT: 0, walk: rand(0, 6),
-        abilityT: def.ability ? def.ability.every * 0.6 : 0, summonT: def.summons ? 6 : 0,
+        abT: def.abilities ? def.abilities.map(ab => ab.every * 0.6) : null, summonT: def.summons ? 6 : 0,
         valor: def.valor, gold: def.gold, boss: !!def.boss
       };
       u.y = LY[lane] + u.yOff;
       this.units.push(u);
+      if (!def.boss && Math.random() < 0.06) this.say(u, pick(ENEMY_QUIPS), 2);
       return u;
     }
 
@@ -246,8 +265,11 @@
     }
 
     spawnDigger() {
-      const tier = G.save.data.units.digger.tier;
-      this.diggers.push({ x: CX - 20, y: 300, state: 'out', t: 0, walk: rand(0, 6), tier: tier, look: A.unitLook('digger', tier), carry: false });
+      const tier = G.save.data.units[G.MINER].tier;
+      this.diggers.push({ x: CX - 20, y: 300, state: 'out', t: 0, walk: rand(0, 6), tier: tier, look: A.unitLook(G.MINER, tier), carry: false });
+      if (!this.serious && Math.random() < 0.35) this.diggers[this.diggers.length - 1].bubble = { text: pick(G.UNITS[G.MINER].quips.summon), t: 2 };
+      G.save.data.stats.interns = (G.save.data.stats.interns || 0) + 1;
+      if (G.save.data.stats.interns >= 100) G.achieve('interns');
     }
 
     /* ---------------- player actions ---------------- */
@@ -256,14 +278,17 @@
       if (!c || this.state !== 'play') return false;
       const id = c.id, def = G.UNITS[id];
       if (c.cd > 0) { G.audio.play('deny'); return false; }
-      if (id === 'digger' && this.diggers.length >= this.maxDiggers) { this.floatText(CX + 60, 280, 'Mine is full!', '#ffd0a0'); G.audio.play('deny'); return false; }
-      if (id !== 'digger' && this.armySize() >= this.armyCap) { this.floatText(CX + 60, 280, 'Army is full!', '#ffd0a0'); G.audio.play('deny'); return false; }
-      if (this.gold < def.cost) { this.floatText(CX + 60, 280, 'Need more gold', '#ffd0a0'); G.audio.play('deny'); return false; }
+      if (id === G.MINER && this.diggers.length >= this.maxDiggers) { this.floatText(CX + 60, 280, 'No more desks!', '#ffd0a0'); G.audio.play('deny'); return false; }
+      if (id !== G.MINER && this.armySize() >= this.armyCap) { this.floatText(CX + 60, 280, 'Headcount freeze!', '#ffd0a0'); G.audio.play('deny'); return false; }
+      if (this.gold < def.cost) { this.floatText(CX + 60, 280, 'Not enough gems!', '#ffd0a0'); G.audio.play('deny'); return false; }
       this.gold -= def.cost;
       c.cd = def.cd * this.cdMult;
       c.cdMax = c.cd;
-      if (id === 'digger') this.spawnDigger();
-      else this.spawnPlayer(id, this.spawnLane);
+      if (id === G.MINER) this.spawnDigger();
+      else if (id === 'swarm') {
+        const n = 2 + G.save.data.units.swarm.tier;
+        for (let i = 0; i < n; i++) { const u = this.spawnPlayer(id, this.spawnLane); u.x -= i * 9; u.yOff = rand(-22, 22); if (i === 0) this.maybeSay(u, 'summon', 0.5); }
+      } else { const u = this.spawnPlayer(id, this.spawnLane); this.maybeSay(u, 'summon', 0.45); }
       G.audio.play('summon');
       return true;
     }
@@ -277,6 +302,10 @@
       if (!mine.length || this.valor < sp.cost) { G.audio.play('deny'); return false; }
       this.valor -= sp.cost;
       G.audio.play('special');
+      const lead = mine[Math.floor(Math.random() * mine.length)];
+      const q = G.UNITS[type].quips;
+      if (q && q.special) this.say(lead, pick(q.special), 2.4, true);
+      G.save.data.stats.specials = (G.save.data.stats.specials || 0) + 1;
       const power = 1 + 0.15 * (G.save.data.units[type].tier - 1);
       mine.forEach(u => this.doSpecial(u, sp.id, power));
       return true;
@@ -290,7 +319,7 @@
           u.special = { kind: 'charge', t: 0.7, speed: 330, mult: 3 * power, hit: new Set(), knock: 20 };
           break;
         case 'stampede':
-          u.special = { kind: 'charge', t: 1.2, speed: 380, mult: 2.5 * power, hit: new Set(), knock: 70, stun: 0.8 };
+          u.special = { kind: 'charge', t: 1.2, speed: 380, mult: 2.5 * power, hit: new Set(), knock: 70, stun: 0.8, back: u.x };
           break;
         case 'volley': {
           const targets = this.units.filter(e => e.side === 1 && !e.dead && e.lane === u.lane && e.x > u.x).sort((a, b) => a.x - b.x).slice(0, 5);
@@ -302,43 +331,94 @@
           u.atkT = 0.01;
           break;
         }
-        case 'wall':
-          u.invuln = 4 + 0.5 * (u.tier - 1);
-          u.hp = Math.min(u.maxHp, u.hp + u.maxHp * 0.3);
-          this.ring(u.x, u.y - 30, '#ffe08a', 60);
-          break;
-        case 'sanctuary':
-          this.units.forEach(a => { if (a.side === 0 && !a.dead) { a.hp = Math.min(a.maxHp, a.hp + a.maxHp * 0.5 * power); this.sparkle(a.x, a.y - 30, '#9dffc0', 6); } });
-          this.castleHp = Math.min(this.castleMax, this.castleHp + this.castleMax * 0.03 * power);
-          this.ring(u.x, u.y - 30, '#9dffc0', 160);
-          G.audio.play('heal');
-          break;
-        case 'meteor': {
-          const en = this.units.filter(e => e.side === 1 && !e.dead && e.lane === u.lane);
-          let best = null, bestN = -1;
-          en.forEach(e => { const n = en.filter(o => Math.abs(o.x - e.x) < 110).length; if (n > bestN) { bestN = n; best = e; } });
-          const tx = best ? best.x : u.x + 250;
-          this.projs.push({ kind: 'meteor', x: tx - 160, y: -60, tx: tx, ty: LY[u.lane] - 10, vx: 0, vy: 0, speed: 700, dmg: u.atk * 6 * power, splash: 130, side: 0, lane: u.lane, src: u, ground: true });
-          u.atkT = 0.01;
-          break;
-        }
-        case 'blizzard':
-          this.units.forEach(e => { if (e.side === 1 && !e.dead && e.lane === u.lane) { e.frozen = Math.max(e.frozen || 0, 3 * (e.boss ? 0.4 : 1)); this.damage(e, u.atk * 2 * power, u); } });
-          for (let i = 0; i < 40; i++) this.parts.push({ x: rand(CX, this.W), y: LY[u.lane] - rand(0, 120), vx: rand(-60, -20), vy: rand(40, 120), life: 1.2, max: 1.2, color: '#e8fbff', size: rand(2, 5), kind: 'dot' });
-          G.audio.play('frost');
-          break;
-        case 'quake':
-          this.shake = 14;
-          this.units.forEach(e => { if (e.side === 1 && !e.dead && Math.abs(e.x - u.x) < 320) { e.stun = Math.max(e.stun || 0, 2.5 * (e.boss ? 0.4 : 1)); this.damage(e, u.atk * 3 * power, u); } });
-          this.ring(u.x, u.y, '#c8963a', 320);
+        case 'slam':
+          this.shake = 12;
+          this.units.forEach(e => { if (e.side === 1 && !e.dead && e.lane === u.lane && Math.abs(e.x - u.x) < 170) { this.damage(e, u.atk * 3 * power, u); if (!e.boss) { e.x += 90; e.stun = Math.max(e.stun || 0, 1); } } });
+          this.ring(u.x, u.y, '#a06a3a', 170);
+          this.pow(u.x + 40, u.y - 60, 'NO TIP?!', 1.2);
           G.audio.play('hitHeavy');
           u.atkT = 0.01;
           break;
+        case 'encourage':
+          this.units.forEach(a => { if (a.side === 0 && !a.dead) { a.hp = Math.min(a.maxHp, a.hp + a.maxHp * 0.5 * power); a.haste = 6; this.sparkle(a.x, a.y - 30, '#ff9ab0', 6); } });
+          this.castleHp = Math.min(this.castleMax, this.castleHp + this.castleMax * 0.03 * power);
+          this.ring(u.x, u.y - 30, '#ff9ab0', 160);
+          G.audio.play('heal');
+          break;
+        case 'memo':
+          u.invuln = 3;
+          this.units.forEach(e => { if (e.side === 1 && !e.dead && e.lane === u.lane && e.x > u.x - 40 && e.x - u.x < 400) { e.stun = Math.max(e.stun || 0, 2.5 * (e.boss ? 0.4 : 1)); this.parts.push({ x: e.x, y: e.y - e.h - 6, vx: 0, vy: -20, life: 1.2, max: 1.2, color: '#ffe84a', size: 6, kind: 'dot' }); } });
+          this.pow(u.x + 60, u.y - 90, 'SEE ATTACHED.', 1, '#ffe84a');
+          G.audio.play('special');
+          break;
+        case 'wild': {
+          const sp = pick(WIZZLE_SPELLS);
+          u.atkT = 0.01;
+          const lane = u.lane;
+          if (sp === 'meteor') {
+            const en = this.units.filter(e => e.side === 1 && !e.dead && e.lane === lane);
+            let best = null, bestN = -1;
+            en.forEach(e => { const n = en.filter(o => Math.abs(o.x - e.x) < 110).length; if (n > bestN) { bestN = n; best = e; } });
+            const tx = best ? best.x : u.x + 250;
+            this.projs.push({ kind: 'meteor', x: tx - 160, y: -60, tx: tx, ty: LY[lane] - 10, vx: 0, vy: 0, speed: 700, dmg: u.atk * 6 * power, splash: 130, side: 0, lane: lane, src: u, ground: true });
+            this.say(u, 'METEOR! I meant to do that.', 2.2, true);
+          } else if (sp === 'freeze') {
+            this.units.forEach(e => { if (e.side === 1 && !e.dead && e.lane === lane) { e.frozen = Math.max(e.frozen || 0, 3 * (e.boss ? 0.4 : 1)); this.damage(e, u.atk * 2 * power, u); } });
+            for (let i = 0; i < 40; i++) this.parts.push({ x: rand(CX, this.W), y: LY[lane] - rand(0, 120), vx: rand(-60, -20), vy: rand(40, 120), life: 1.2, max: 1.2, color: '#e8fbff', size: rand(2, 5), kind: 'dot' });
+            this.say(u, 'Brr! Was that me?', 2.2, true);
+            G.audio.play('frost');
+          } else if (sp === 'heal') {
+            this.units.forEach(a => { if (a.side === 0 && !a.dead) { a.hp = Math.min(a.maxHp, a.hp + a.maxHp * 0.4 * power); this.sparkle(a.x, a.y - 30, '#9dffc0', 5); } });
+            this.say(u, 'Healing! ...wait, no, yes. Healing!', 2.2, true);
+            G.audio.play('heal');
+          } else if (sp === 'lightning') {
+            const en = this.units.filter(e => e.side === 1 && !e.dead).sort((a, b) => b.hp - a.hp).slice(0, 3);
+            this.bolts = this.bolts || [];
+            en.forEach(e => { this.bolts.push({ x: e.x, y: e.y, t: 0.35 }); this.damage(e, u.atk * 5 * power, u); });
+            this.shake = 8;
+            this.say(u, 'ZAP! Ha! Still got it!', 2.2, true);
+            G.audio.play('thunder');
+          } else if (sp === 'gems') {
+            const g = Math.round(60 * power);
+            this.gold += g; this.goldEarned += g;
+            this.floatText(u.x, u.y - u.h - 20, '+' + g + ' gems', '#ffe27a', 1.4);
+            this.sparkle(u.x, u.y - 40, '#5ae0ff', 20);
+            this.say(u, 'Oops! Money! Don\'t tell accounting.', 2.4, true);
+            G.audio.play('gem');
+          } else {
+            let n = 0;
+            this.units.forEach(e => { if (e.side === 1 && !e.dead && !e.boss && e.lane === lane) { e.chicken = 5; n++; this.puff(e.x, e.y - 20, '#ffffff', 8); } });
+            if (n) { G.save.data.stats.chickens = (G.save.data.stats.chickens || 0) + n; G.achieve('chicken'); }
+            this.say(u, 'Chickens! Everyone\'s a chicken!', 2.4, true);
+            G.audio.play('special');
+          }
+          break;
+        }
+        case 'rebirth':
+          u.hp = u.maxHp;
+          this.units.forEach(e => { if (e.side === 1 && !e.dead && e.lane === u.lane && Math.abs(e.x - u.x) < 150) this.damage(e, u.atk * 4 * power, u); });
+          for (let i = 0; i < 30; i++) this.parts.push({ x: u.x, y: u.y - 55, vx: rand(-1, 1) * 220, vy: rand(-1, 0.4) * 200, life: 0.6, max: 0.6, color: pick(['#ffd040', '#ff8a2a', '#ff4a1a', '#ffffff']), size: rand(4, 10), kind: 'fire' });
+          this.ring(u.x, u.y - 30, '#ff8a2a', 150);
+          G.audio.play('fire');
+          break;
+        case 'grievance': {
+          const t = this.units.filter(e => e.side === 1 && !e.dead && e.lane === u.lane && e.x > u.x - 20).sort((a, b) => a.x - b.x)[0];
+          if (t) { this.damage(t, u.atk * 4 * power, u); t.slowT = 3; t.slowAmtIn = 0.5; this.parts.push({ x: t.x, y: t.y - t.h, vx: rand(-20, 20), vy: -40, life: 1, max: 1, color: '#ffffff', size: 5, kind: 'dot' }); }
+          u.atkT = 0.01;
+          break;
+        }
       }
     }
 
     command(order) {
       const types = this.selected ? [this.selected] : G.UNIT_ORDER;
+      const pool = this.units.filter(u => u.side === 0 && !u.dead && types.includes(u.type) && u.def.quips && u.def.quips.refuse);
+      if (pool.length && Math.random() < 0.18 && !this.serious) {
+        const u = pick(pool);
+        this.say(u, pick(u.def.quips.refuse), 2.4, true);
+        u.stun = Math.max(u.stun || 0, 0.8);
+        const st = G.save.data.stats; st.refused = (st.refused || 0) + 1; if (st.refused >= 10) G.achieve('refused');
+      }
       types.forEach(t => {
         this.orders[t] = order;
         if (order === 'hold') {
@@ -443,6 +523,15 @@
     /* ---------------- simulation ---------------- */
     update(dt) {
       if (this.state === 'paused') return;
+      if (this.form && this.state === 'play') {
+        this.form.t -= dt / Math.max(1, G.speed);
+        if (this.form.t <= 0) this.formFail();
+        return;
+      }
+      if (this.slides) { this.slides.t -= dt; if (this.slides.t <= 0) this.slides = null; }
+      if (this.quipCd > 0) this.quipCd -= dt;
+      for (let i = this.pows.length - 1; i >= 0; i--) { this.pows[i].t -= dt; if (this.pows[i].t <= 0) this.pows.splice(i, 1); }
+      for (const d of this.diggers) if (d.bubble) { d.bubble.t -= dt; if (d.bubble.t <= 0) d.bubble = null; }
       this.time += dt;
       if (this.state !== 'play') {
         this.endTimer -= dt;
@@ -551,6 +640,7 @@
         if (target === 'castle') this.fire(u, null, u.proj, u.atk, { tx: CX - 10, ty: u.y - 40, castle: true });
         else if (target === 'fort') this.fire(u, null, u.proj, u.atk, { tx: this.fortX + 20, ty: u.y - 40, fort: true });
         else this.fire(u, target, u.proj, u.atk);
+        if (u.type === 'todd') this.maybeSay(u, 'shot', 0.1);
         G.audio.play(u.proj === 'fireball' ? 'fire' : u.proj === 'frost' ? 'frost' : 'arrow');
       } else {
         if (target === 'castle') this.hitCastle(u.atk);
@@ -560,6 +650,10 @@
             this.units.forEach(e => { if (e.side !== u.side && !e.dead && e.lane === u.lane && Math.abs(e.x - target.x) < u.splash) this.damage(e, u.atk, u); });
             this.ring(target.x, target.y - 10, '#d8b080', u.splash, 0.3);
           } else this.damage(target, u.atk, u);
+          if (u.def.stunChance && Math.random() < u.def.stunChance && !target.dead) { target.stun = Math.max(target.stun || 0, 0.8); this.parts.push({ x: target.x, y: target.y - target.h - 4, vx: 0, vy: -30, life: 0.9, max: 0.9, color: '#ffe84a', size: 5, kind: 'dot' }); }
+          if (u.side === 0 && (u.atk > 26 || Math.random() < 0.06) && Math.random() < 0.35) this.pow(target.x, target.y - target.h * 0.6, pick(POWS), 0.7);
+          if (u.side === 0 && u.type === 'reginald' && target.dead) this.maybeSay(u, 'kill', 0.35);
+          if (u.side === 0 && u.type === 'brenda' && target.dead) this.maybeSay(u, 'kill', 0.3);
           G.audio.play(u.atk > 30 ? 'hitHeavy' : 'hit');
         }
       }
@@ -582,7 +676,7 @@
       this.laneMove(u, dt);
       this.tickAttack(u, dt);
       if (u.stun > 0 || u.frozen > 0) { u.moving = false; return; }
-      if (u.special) {
+      if (u.special && u.special.kind === 'charge') {
         const s = u.special;
         s.t -= dt;
         u.moving = true; u.walk += dt * 10;
@@ -597,10 +691,16 @@
           }
         });
         if (Math.random() < dt * 20) this.parts.push({ x: u.x - 10, y: u.y, vx: rand(-80, -20), vy: rand(-40, 0), life: 0.4, max: 0.4, color: 'rgba(200,180,140,0.7)', size: 5, kind: 'smoke' });
-        if (s.t <= 0) u.special = null;
+        if (s.t <= 0) u.special = s.back != null ? { kind: 'return', x: s.back } : null;
         return;
       }
-      if (u.cd > 0) u.cd -= dt;
+      if (u.special && u.special.kind === 'return') {
+        u.moving = true; u.facing = -1; u.walk += dt * 8;
+        u.x -= 320 * dt;
+        if (u.x <= u.special.x) { u.x = u.special.x; u.special = null; u.facing = 1; }
+        return;
+      }
+      if (u.cd > 0) u.cd -= dt * (u.haste > 0 ? 1.5 : 1);
       // healing
       if (u.heal && u.cd <= 0) {
         let best = null, br = 0.98;
@@ -609,6 +709,7 @@
         });
         if (best) {
           const tgt = best;
+          if (Math.random() < 0.12) this.maybeSay(u, 'heal', 1);
           this.startAttack(u, tgt, t => { if (!t.dead) { t.hp = Math.min(t.maxHp, t.hp + u.heal); this.sparkle(t.x, t.y - t.h * 0.5, '#9dffc0', 5); this.floatText(t.x, t.y - t.h - 6, '+' + Math.round(u.heal), '#9dffc0', 0.6); } });
           u.moving = false;
           G.audio.play('heal');
@@ -632,7 +733,8 @@
       if (u.order === 'retreat') goal = CX + 34;
       else if (u.order === 'hold' && u.holdX != null) goal = u.holdX;
       else {
-        goal = this.kind === 'siege' ? this.fortX - u.range + 2 : this.W - 150;
+        const ahead = this.byLane && this.byLane[1][u.lane].some(e => !e.dead && e.x > u.x && e.x < this.W - 20);
+        goal = this.kind === 'siege' ? this.fortX - u.range + 2 : (ahead ? this.W - 40 : this.W - 150);
         if (this.formation && !u.melee) {
           let front = -1;
           this.units.forEach(a => { if (a.side === 0 && !a.dead && a.melee && a.lane === u.lane && a.x > front) front = a.x; });
@@ -657,7 +759,8 @@
       this.laneMove(e, dt);
       this.tickAttack(e, dt);
       if (e.stun > 0 || e.frozen > 0) { e.moving = false; return; }
-      if (e.def.ability) this.bossAbility(e, dt);
+      if (e.chicken > 0) { e.moving = true; e.x += Math.sin(this.time * 3 + e.id) * 30 * dt; return; }
+      if (e.def.abilities) this.bossAbility(e, dt);
       if (e.burrowed) {
         e.burrowT -= dt;
         e.moving = true;
@@ -688,7 +791,7 @@
         }
       }
       const onLane = Math.abs(e.y - (LY[e.lane] + e.yOff)) < 14;
-      const target = onLane ? this.findTarget(e) : null;
+      const target = onLane && e.x < this.W - 60 ? this.findTarget(e) : null;
       if (target) {
         e.moving = false;
         if (e.cd <= 0) this.startAttack(e, target, t => this.hitWith(e, t));
@@ -705,14 +808,15 @@
     }
 
     bossAbility(e, dt) {
-      const ab = e.def.ability;
-      e.abilityT -= dt;
-      if (e.abilityT > 0) return;
-      e.abilityT = ab.every;
-      const doKind = k => {
+      e.def.abilities.forEach((ab, i) => {
+        e.abT[i] -= dt;
+        if (e.abT[i] > 0) return;
+        e.abT[i] = ab.every;
+        if (this.form || this.slides) { e.abT[i] = 3; return; }
+        if (ab.line) this.say(e, ab.line, 2.5, true);
+        const k = ab.kind;
         if (k === 'summon') {
-          for (let i = 0; i < ab.n; i++) { const s = this.spawnEnemy(ab.what, i % 3); s.x = Math.min(this.W + 20, e.x + 30 + i * 15); this.puff(s.x, s.y - 20, '#ff9a5a', 8); }
-          this.floatText(e.x, e.y - e.h - 30, 'Reinforcements!', '#ff9a7a', 1.4);
+          for (let j = 0; j < ab.n; j++) { const s = this.spawnEnemy(ab.what, j % 3); s.x = Math.min(this.W + 20, e.x + 30 + j * 15); this.puff(s.x, s.y - 20, '#ff9a5a', 8); }
         } else if (k === 'stomp') {
           const r = ab.radius || 260;
           this.shake = 12;
@@ -727,12 +831,54 @@
           e.breathT = 1.2;
           G.audio.play('fire');
           this.units.forEach(p => { if (p.side === 0 && !p.dead && p.lane === e.lane && e.x - p.x < 380 && e.x - p.x > -20) this.damage(p, e.atk * 1.1, e); });
-          for (let i = 0; i < 50; i++) { const d = rand(0, 380); this.parts.push({ x: e.x - 70 - d * 0.2, y: e.y - 110, vx: -rand(300, 520), vy: rand(30, 140), life: 0.8, max: 0.8, color: pick(['#ffd040', '#ff8a2a', '#ff4a1a']), size: rand(5, 12), kind: 'fire' }); }
+          for (let j = 0; j < 50; j++) { const d = rand(0, 380); this.parts.push({ x: e.x - 70 - d * 0.2, y: e.y - 110, vx: -rand(300, 520), vy: rand(30, 140), life: 0.8, max: 0.8, color: pick(['#ffd040', '#ff8a2a', '#ff4a1a', '#ffffff']), size: rand(5, 12), kind: 'fire' }); }
+        } else if (k === 'slides') {
+          const sl = pick(SLIDES);
+          this.slides = { t: 3.6, title: sl[0], bullets: sl[1], boss: e };
+          this.units.forEach(p => { if (p.side === 0 && !p.dead) { p.stun = Math.max(p.stun || 0, 2.5); p.sleepy = 2.5; } });
+          e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.04);
+          this.say(e, pick(['Let me share my screen...', 'Can everyone see my slides?', 'Next slide please.']), 2.5, true);
+          G.audio.play('boss');
+        } else if (k === 'form') {
+          if (this.serious) return;
+          this.form = { t: 5.5, max: 5.5, boxes: [0, 1, 2].map(i => ({ x: rand(0, 1), y: i / 2, done: false })), boss: e };
+          this.say(e, 'Fill out this form! You have 5 seconds!', 3, true);
+          G.audio.play('deny');
         }
-      };
-      doKind(ab.kind);
-      if (ab.also) doKind(ab.also);
+      });
     }
+
+    formTick(i) {
+      const f = this.form;
+      if (!f || f.boxes[i].done) return;
+      f.boxes[i].done = true;
+      G.audio.play('coin');
+      if (f.boxes.every(b => b.done)) {
+        this.form = null;
+        const e = f.boss;
+        if (!e.dead) { e.stun = 3; this.damage(e, e.maxHp * 0.08, null); this.pow(e.x, e.y - e.h - 20, 'APPROVED!', 1.3, '#7aff7a'); }
+        this.showBanner('Form approved!', '#7aff7a');
+        const st = G.save.data.stats; st.forms = (st.forms || 0) + 1; if (st.forms >= 5) G.achieve('forms');
+        G.audio.play('upgrade');
+      }
+    }
+    formFail() {
+      this.form = null;
+      this.hitCastle(this.castleMax * 0.1);
+      this.showBanner(pick(['Form rejected: wrong pen color', 'Form rejected: missing initials', 'Form rejected: font too fun']), '#ff7a6a');
+    }
+
+    say(u, text, dur, force) {
+      if (this.serious || !text) return;
+      if (!force && this.quipCd > 0) return;
+      u.bubble = { text: text, t: dur || 2, max: dur || 2 };
+      if (!force) this.quipCd = 1.4;
+    }
+    maybeSay(u, key, chance) {
+      const q = u.def && u.def.quips && u.def.quips[key];
+      if (q && Math.random() < chance) this.say(u, pick(q), 2);
+    }
+    pow(x, y, text, k, color) { if (this.serious) return; this.pows.push({ x: x, y: y, text: text, k: k || 1, color: color, t: 0.6 }); }
 
     unitTimers(u, dt) {
       if (u.invuln > 0) u.invuln -= dt;
@@ -741,6 +887,10 @@
       if (u.slowT > 0) u.slowT -= dt;
       if (u.hurt > 0) u.hurt -= dt;
       if (u.flash > 0) u.flash -= dt;
+      if (u.haste > 0) u.haste -= dt;
+      if (u.sleepy > 0) u.sleepy -= dt;
+      if (u.chicken > 0) u.chicken -= dt;
+      if (u.bubble) { u.bubble.t -= dt; if (u.bubble.t <= 0) u.bubble = null; }
       if (u.breathT > 0) u.breathT -= dt;
     }
     laneMove(u, dt) {
@@ -762,6 +912,15 @@
       if (t.hp <= 0) this.kill(t, src);
     }
     kill(t) {
+      if (t.side === 0 && t.type === 'phoenix' && !t.reborn) {
+        t.reborn = true; t.hp = t.maxHp * 0.5; t.invuln = 1.5;
+        this.ring(t.x, t.y - 40, '#ff8a2a', 90);
+        for (let i = 0; i < 24; i++) this.parts.push({ x: t.x, y: t.y - 55, vx: rand(-1, 1) * 160, vy: rand(-1, 0.2) * 180, life: 0.6, max: 0.6, color: pick(['#ffd040', '#ff8a2a', '#ffffff']), size: rand(3, 8), kind: 'fire' });
+        this.maybeSay(t, 'rebirth', 1);
+        const st = G.save.data.stats; st.rebirths = (st.rebirths || 0) + 1; G.achieve('rebirth');
+        G.audio.play('fire');
+        return;
+      }
       t.dead = true; t.deathT = 0.5; t.hp = 0;
       this.puff(t.x, t.y - t.h * 0.4, t.side === 1 ? '#e8e0d0' : '#ffffff', t.boss ? 40 : 10);
       if (t.side === 1) {
@@ -777,6 +936,7 @@
     }
     hitCastle(dmg) {
       this.castleHp -= dmg;
+      this.castleHit = true;
       this.shake = Math.max(this.shake, 4);
       G.audio.play('castleHit');
       this.puff(CX + rand(-10, 10), rand(300, 560), '#b4ada0', 4);
@@ -847,13 +1007,13 @@
       if (won) {
         this.units.forEach(u => { if (u.side === 1 && !u.dead) this.kill(u); });
         if (this.kind === 'siege') { this.shake = 20; for (let i = 0; i < 12; i++) this.puff(this.fortX + rand(0, 120), rand(150, 600), '#ffb030', 12); G.audio.play('boom'); }
-        this.showBanner('Victory!', '#ffe27a');
+        this.showBanner(this.serious ? 'Victory.' : pick(['VICTORY!', 'NAILED IT!', 'WE WON?!', 'SYNERGY!']), '#ffe27a');
         G.audio.play('victory');
       } else {
-        this.showBanner(this.endless ? 'The castle has fallen' : 'Defeat', '#ff6a5a');
+        this.showBanner(this.serious ? 'Defeat.' : pick(['CASTLE CLOSED', 'YOU\'RE FIRED', 'WELL, THAT HAPPENED']), '#ff6a5a');
         G.audio.play('defeat');
       }
-      this.result = { won: won, kills: this.kills, goldEarned: this.goldEarned, wave: this.wave, endless: this.endless, castleRatio: this.castleHp / this.castleMax };
+      this.result = { castleHit: this.castleHit, won: won, kills: this.kills, goldEarned: this.goldEarned, wave: this.wave, endless: this.endless, castleRatio: this.castleHp / this.castleMax };
     }
 
     /* ---------------- effects ---------------- */
@@ -912,6 +1072,7 @@
           LY.forEach(ly => { ctx.fillStyle = this.armedSpell ? 'rgba(255,120,80,' + pulse + ')' : 'rgba(150,220,255,' + pulse + ')'; ctx.fillRect(CX, ly - 36, this.W - CX, 72); });
         }
       }
+      A.gags(ctx, this.W, t, this.region.id, this.kind === 'siege');
       A.mine(ctx, MINE.x, MINE.y, t);
       if (this.kind === 'siege') A.fortress(ctx, this.fortX, t, Math.max(0, this.fortHp) / this.fortMax);
       A.castle(ctx, t, this.castleHp / this.castleMax, this.spawnLane, this.towerLvl, false);
@@ -921,6 +1082,7 @@
         ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.beginPath(); ctx.ellipse(0, 0, 12, 4, 0, 0, Math.PI * 2); ctx.fill();
         if (d.face < 0) ctx.scale(-1, 1);
         A.humanoid(ctx, d.look, { t: t, walk: d.walk, moving: d.state !== 'dig', atk: 0, dig: d.state === 'dig' });
+        if (d.bubble) { ctx.restore(); A.bubble(ctx, d.x, d.y - 80, d.bubble.text, Math.min(1, d.bubble.t * 3)); ctx.save(); ctx.translate(d.x, d.y); }
         if (d.carry) { ctx.fillStyle = '#c8a060'; ctx.strokeStyle = 'rgba(28,18,10,0.85)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(-10, -46, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#ffe05a'; ctx.fillRect(-12, -54, 4, 4); }
         ctx.restore();
       }
@@ -960,6 +1122,11 @@
         else if (a.glow) { ctx.globalAlpha = 0.5 + Math.sin(a.t * 5) * 0.5; ctx.beginPath(); ctx.arc(a.x, a.y, a.size, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
         else { ctx.beginPath(); ctx.arc(a.x, a.y, a.size, 0, Math.PI * 2); ctx.fill(); }
       }
+      // impact words
+      for (const pw of this.pows) A.pow(ctx, pw.x, pw.y, pw.text, pw.k * (0.8 + Math.min(0.4, (0.6 - pw.t) * 3)), pw.color);
+      // speech bubbles
+      for (const u of this.units) if (u.bubble && !u.dead) A.bubble(ctx, u.x, u.y - u.h - 12, u.bubble.text, Math.min(1, u.bubble.t * 3));
+      for (const u of this.units) if (u.sleepy > 0 && u.stun > 0 && !u.dead) { ctx.fillStyle = '#fff'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('z Z', u.x + 12, u.y - u.h - 4 - (t * 20 % 12)); }
       // floating text
       ctx.textAlign = 'center'; ctx.font = 'bold 22px "Trebuchet MS", sans-serif'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.7)';
       for (const tx of this.texts) {
@@ -969,6 +1136,8 @@
       ctx.globalAlpha = 1;
       ctx.restore();
       if (this.flashScreen) { ctx.fillStyle = this.flashScreen.c + (this.flashScreen.t) + ')'; ctx.fillRect(0, 0, this.W, G.H); }
+      if (this.slides) this.drawSlides(ctx, this.slides);
+      if (this.form) { ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0, 0, this.W, G.H); }
       // banner
       if (this.banner) {
         const b = this.banner, a = Math.min(1, b.t * 2, (2.4 - b.t) * 4);
@@ -978,6 +1147,22 @@
         ctx.fillStyle = b.color; ctx.fillText(b.text, this.W / 2, 220);
         ctx.restore();
       }
+    }
+
+    drawSlides(ctx, s) {
+      const a = Math.min(1, s.t * 3, (3.6 - s.t) * 4);
+      const w = 520, h = 300, x = this.W / 2 - w / 2, y = 120;
+      ctx.save(); ctx.globalAlpha = a;
+      ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(x + 10, y + 12, w, h);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(x, y, w, h); ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 4; ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = '#2a4ab0'; ctx.fillRect(x, y, w, 56);
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 30px "Trebuchet MS", sans-serif'; ctx.textAlign = 'left'; ctx.fillText(s.title, x + 20, y + 39);
+      ctx.fillStyle = '#1a1a1a'; ctx.font = '22px "Trebuchet MS", sans-serif';
+      s.bullets.forEach((b, i) => ctx.fillText('• ' + b, x + 24, y + 100 + i * 38));
+      const bars = [40, 70, 55, 120];
+      bars.forEach((bh, i) => { ctx.fillStyle = ['#e83a3a', '#ffc62a', '#5ad85a', '#4a8aff'][i]; ctx.fillRect(x + 360 + i * 32, y + 260 - bh, 24, bh); });
+      ctx.fillStyle = '#888'; ctx.font = '14px sans-serif'; ctx.fillText('Slide ' + (2 + Math.floor((3.6 - s.t) * 3)) + ' of 247', x + 20, y + h - 14);
+      ctx.restore();
     }
 
     drawUnit(ctx, u, t) {
@@ -1000,7 +1185,7 @@
         ctx.beginPath(); ctx.ellipse(0, -u.h * 0.45, 28 * big, u.h * 0.6, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
       }
       const frozen = u.frozen > 0;
-      A.drawLook(ctx, u.look, { t: frozen ? 0 : t + u.id, walk: u.walk, moving: u.moving && !frozen, atk: u.atkT, breath: u.breathT > 0 ? 1 : 0, burrowed: u.burrowed });
+      A.drawLook(ctx, u.chicken > 0 ? CHICKEN_LOOK : u.look, { t: frozen ? 0 : t + u.id, walk: u.walk, moving: u.moving && !frozen, atk: u.atkT, breath: u.breathT > 0 ? 1 : 0, burrowed: u.burrowed });
       if (frozen) {
         ctx.fillStyle = 'rgba(170,230,255,0.45)'; ctx.strokeStyle = 'rgba(230,250,255,0.9)'; ctx.lineWidth = 2;
         A.rr(ctx, -20 * big, -u.h, 40 * big, u.h + 4, 6); ctx.fill(); ctx.stroke();

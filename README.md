@@ -1,58 +1,76 @@
-# Gemfall Legions
+# Ridiculous Wars
+### *Totally Serious Business*
 
-An original, free 3-lane fantasy battle strategy game for Android. Dig gold, raise an army, and command it across three lanes against goblins, skeletons, wyrms, drakes and the Hollow King.
+A free 3-lane real-time strategy / castle-defense comedy game for Android.
+
+The once-glorious kingdom of **Glorpia** has grown soft from centuries of peace, tax exemptions and competitive baking contests. When the **Nether-Bureaucracy** declares war over a disputed parking ticket and one (1) stolen royal sandwich, the kingdom's last hope is a ragtag crew of misfit heroes who mostly signed up for the free dental plan. You are the newly appointed **Supreme Lane Commander**. Nobody else applied.
 
 **Free forever: no ads, no in-app purchases, no energy, no timers, no premium currency.** Everything is earned by playing.
 
 ## 📲 Download & install on Android
 
-1. Open the **[latest release](../../releases/latest)** on your phone and tap the `GemfallLegions-v1.0.N.apk` file.
+1. Open the **[latest release](../../releases/latest)** on your phone and tap the `RidiculousWars-v1.0.N.apk` file.
    (Every build is also attached as an artifact on the **[Actions](../../actions/workflows/build-apk.yml)** tab.)
-2. When Android asks, allow your browser / file manager to **install unknown apps**.
-3. Tap **Install**, then open **Gemfall Legions**.
+2. If Android asks, allow your browser or file manager to **install unknown apps**.
+3. Tap **Install** and open **Ridiculous Wars**.
 
-Requires Android 8.0+. All builds share one signing key, so a newer APK installs over an older one and keeps your save.
+Requires Android 8.0+. Every build is signed with the same key, so a newer APK installs over an older one and keeps your save.
 
 ## 🎮 How to play
 
 | Action | How |
 | --- | --- |
-| Earn gold | Summon **Diggers** (first card). They walk to the crystal mine and haul gold home. You also get a trickle of gold over time and from kills. |
-| Collect gems | Tap the glowing gems that pop up on the field for bonus gold and valor. |
-| Choose spawn lane | Tap a lane (or the castle gate) — the glowing arrow shows where new troops appear. |
-| Summon troops | Tap a unit card. Each card has its own cooldown. |
-| Move troops | Tap one of your soldiers to select **all units of that type**, then tap another lane. |
-| Commands | **Advance / Hold / Retreat** apply to the selected type, or to everyone if nothing is selected. Retreated units heal at the castle. |
-| Formation | When on, ranged units and healers stay behind your front-line melee. |
-| Specials | Killing enemies fills **Valor ✨**. Tap the purple button above a card to unleash that unit type's special. Units are invulnerable during it. |
-| Spells | Unlock in the Armory. Arrow Storm asks you to tap a lane; Frost Nova and Thunder Wrath fire instantly. |
-| Speed / pause | Top-right buttons. The Android back button pauses. |
+| Earn gems 💎 | Hire **Interns** (first card). They dig gems at the mine and haul them back. You also get a trickle of gems over time and from defeated enemies. |
+| Bonus gems | Tap the floating gems that pop up on the battlefield. |
+| Spawn lane | Tap a lane (or the castle gate). The glowing arrow shows where new hires appear. |
+| Summon | Tap a unit card. Each card has its own cooldown. |
+| Move troops | Tap one of your units to select **every unit of that type**, then tap another lane. |
+| Commands | **Advance / Hold / Retreat** apply to the selected type, or to everyone if nothing is selected. Retreated units heal at the castle. Sometimes your troops refuse orders. Then they do it anyway. |
+| Formation | When on, ranged units and medics stay behind the front line. |
+| Specials | Defeating enemies builds **Synergy ✨**. Tap the purple button above a card to trigger that unit type's special. Units can't be hurt while it plays. |
+| Office magic | Unlock in Procurement. *Reply-All Arrow Storm* asks you to tap a lane; *Thermostat War* and *Lightning Round* fire instantly. |
+| Boss meetings | Bosses run PowerPoint presentations (everyone falls asleep) and hand you **forms**. Tick every box before the timer runs out, or the castle pays for it. |
 
-### Content
-- **9 units**, each with **5 tiers** (new look, stats and stronger special) and up to 20 levels: Digger, Squire, Ranger, Bulwark, Mender, Pyromancer, Boar Rider, Frost Witch and the Clockwork Titan.
-- **6 regions, 36 levels**: Meadowmarch, Frostveil, Ember Dunes, Gloomfen, Cinderpeak and the Hollow Throne. Mix of defend, siege (destroy the fortress) and boss battles.
-- **6 bosses** with unique abilities (summons, ground stomps, burrowing, fire breath).
-- **3 difficulties**: Normal → Heroic → Mythic (New Game+ with tougher foes and bigger rewards).
-- **Endless Siege** mode with escalating waves that march through every region.
-- **Armory**: castle walls, mine shafts, rich veins, war chest, drill sergeant, battle hymns, archer tower and a 3-spell spellbook.
-- All art is drawn procedurally in code, and all sound/music is synthesized, so the APK is tiny (~70 KB).
+### The team
+| Role | Unit | Special |
+| --- | --- | --- |
+| Gatherer | **Intern** | Digs gems. Puts it on the company card. |
+| Melee | **Sir Reginald the Overconfident** | *Full-Title Charge*: yells his whole title while trampling the lane |
+| Ranged | **Todd the Reluctant Ranger** | *Apology Volley*: five arrows, five apologies |
+| Heavy | **Brenda the Boulder** (barista) | *Tip Jar Slam*: launches everything nearby |
+| Support | **Nurse Stabby** | *Aggressive Encouragement*: big heal plus a frenzy |
+| Tank | **The Golem of HR** (a binder) | *Passive-Aggressive Memo*: stuns the whole lane; normal hits can stun too |
+| Mage | **Professor Wizzle** | *Wait, Which Spell Was It?*: meteor, freeze, heal, lightning, free gems, or turns enemies into chickens |
+| Fast | **Kevin the Unicorn** | *Let's Circle Back*: tramples forward, then gallops back |
+| Flying | **Phoenix of Questionable Origin** (a chicken) | *Dramatic Rebirth*; also comes back to life once per battle |
+| Swarm | **The Intern Swarm** | Each summon brings 3–7 tiny interns. *Mass Grievance*: everyone files a complaint |
+
+Every unit has **5 costume tiers**. For example, Reginald goes from a dented bucket helmet to polished armor, parade plumes, gilded plate and finally full **disco-ball** armor.
+
+### The world
+- **6 regions, 36 levels**: The Gilded Suburbs, Frostburn Corporate Retreat, Desert Oasis All-Hands, Mystic Swamp of Unresolved Issues, Magma Mountain Headquarters and The Nether-Cubicle. Each has defend, siege (demolish the branch office) and boss levels, plus a mission briefing.
+- **6 bosses**: Karenthia, Queen of the HOA · Chilldred, Chief Morale Officer · the Wyrm of Endless Meetings · the Bog Witch of Backlogs · the Dragon of Excessive Paperwork · **Lord Magma, Director of Infernal Operations** (tiny tie, flaming briefcase).
+- **Difficulties**: Regular Shift → Performance Improvement Plan → Mandatory Overtime (New Game+).
+- **Endless Overtime** mode, **16 achievements**, sarcastic victory and defeat screens, and background gags (a snack vendor, a coward hiding in a bush, a sleeping guard, fans and a goose).
+- **Serious Mode** in Settings turns off the jokes, then mocks you for it.
+- All art is drawn in code and all audio is synthesized, so the APK is under 100 KB.
 
 ## 🛠️ Project layout
 
 ```
 app/src/main/assets/www/   The game (HTML5 canvas + vanilla JS, works offline)
-  js/data.js               Units, enemies, regions, levels, upgrades
-  js/art.js                Procedural art: characters, monsters, castles, backgrounds
-  js/battle.js             Battle simulation, AI, waves, rendering
-  js/ui.js                 Menus, barracks, armory, HUD
-  js/audio.js              Synthesized SFX and music
-app/src/main/java/...      Tiny Android WebView wrapper (fullscreen, back button, pause)
-.github/workflows/          CI that builds the APK and publishes a release on every push to main
+  js/data.js               Units, enemies, bosses, regions, writing, achievements
+  js/art.js                Procedural art: characters, costumes, monsters, castles, gags
+  js/battle.js             Battle simulation, AI, waves, boss events, rendering
+  js/ui.js                 Menus, Personnel, Procurement, HUD, forms, results
+  js/audio.js              Synthesized sound effects and music
+app/src/main/java/...      Small Android WebView wrapper (fullscreen, back button, pause)
+.github/workflows/         CI: builds the APK and publishes a release on every push to main
 docs/Development_Plan.md   The original planning document
 ```
 
-Play in a desktop browser by opening `app/src/main/assets/www/index.html` (keys: 1–9 summon, ↑/↓ lane, A/H/R commands, Esc pause).
+To play in a desktop browser, open `app/src/main/assets/www/index.html`. Keys: 1–9 summon, ↑/↓ lane, A/H/R commands, Esc pause.
 
-Build locally: `./gradlew assembleRelease` (JDK 17 + Android SDK). The APK lands in `app/build/outputs/apk/release/`.
+To build locally: `./gradlew assembleRelease` (needs JDK 17 and the Android SDK). The APK ends up in `app/build/outputs/apk/release/`.
 
-> The signing keystore in `keystore/` is intentionally public. It exists only so every CI build can update the previous install; it protects nothing secret.
+> The signing keystore in `keystore/` is intentionally public. It only exists so every CI build can update the previous install; it protects nothing secret.

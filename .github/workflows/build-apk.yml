@@ -37,13 +37,13 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk "dist/GemfallLegions-v1.0.${{ github.run_number }}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "dist/RidiculousWars-v1.0.${{ github.run_number }}.apk"
           ls -la dist
 
       - name: Upload APK as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: GemfallLegions-apk
+          name: RidiculousWars-apk
           path: dist/*.apk
           if-no-files-found: error
 
@@ -52,7 +52,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
-          name: Gemfall Legions v1.0.${{ github.run_number }}
+          name: Ridiculous Wars v1.0.${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           make_latest: true
           files: dist/*.apk
@@ -63,4 +63,4 @@ jobs:
             - You may need to allow "Install unknown apps" for your browser or file manager.
             - Every build is signed with the same key, so new versions install over old ones and keep your progress.
 
-            Free forever: no ads, no in-app purchases, no timers.
+            Free forever: no ads, no in-app purchases, no timers. Dental not included.

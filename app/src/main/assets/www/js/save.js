@@ -1,7 +1,7 @@
-/* Gemfall Legions - local save (no accounts, no cloud, no purchases) */
+/* Ridiculous Wars - local save (no accounts, no cloud, no purchases) */
 (function () {
   'use strict';
-  const KEY = 'gemfall_legions_save_v1';
+  const KEY = 'ridiculous_wars_save_v1';
   const S = G.save = {};
 
   function fresh() {
@@ -18,11 +18,12 @@
       spells: { arrows: 0, frostnova: 0, thunder: 0 },
       progress: { normal: -1, heroic: -1, mythic: -1 }, // highest cleared level index
       stars: {},          // "diff:idx" -> true
-      lineup: ['squire', 'ranger'],
-      settings: { sfx: true, music: true, speed2: false },
+      lineup: ['reginald', 'todd'],
+      settings: { sfx: true, music: true, speed2: false, serious: false, lowfx: false },
+      achievements: {},
       seenIntro: {},
       endlessBest: 0,
-      stats: { kills: 0, wins: 0, played: 0 },
+      stats: { kills: 0, wins: 0, played: 0, interns: 0, rebirths: 0, chickens: 0, forms: 0, refused: 0, specials: 0 },
       difficulty: 'normal'
     };
   }
@@ -38,6 +39,17 @@
     G.UPGRADES.forEach(u => { if (d.upgrades[u.id] === undefined) d.upgrades[u.id] = 0; });
     S.data = d;
     return d;
+  };
+  G.achieve = function (id) {
+    const d = S.data;
+    if (!d || d.achievements[id]) return false;
+    const a = G.ACHIEVEMENTS.find(x => x.id === id);
+    if (!a) return false;
+    d.achievements[id] = Date.now();
+    S.write();
+    if (G.ui && G.ui.toast) G.ui.toast('🏆 Achievement: <b>' + a.name + '</b>');
+    if (G.audio) G.audio.play('upgrade');
+    return true;
   };
   S.write = function () {
     try { localStorage.setItem(KEY, JSON.stringify(S.data)); } catch (e) { /* storage full or blocked */ }

@@ -1,4 +1,4 @@
-/* Gemfall Legions - bootstrap, render loop, input */
+/* Ridiculous Wars - bootstrap, render loop, input */
 (function () {
   'use strict';
   const canvas = document.getElementById('game');
@@ -40,8 +40,8 @@
       bg: G.art.renderBackground(r.theme, W, G.H, 101 + region * 13),
       walkers: []
     };
-    const ally = ['squire', 'ranger', 'bulwark', 'pyro', 'boar', 'mender'];
-    for (let i = 0; i < 7; i++) {
+    const ally = ['reginald', 'todd', 'brenda', 'wizzle', 'kevin', 'stabby', 'golem', 'phoenix'];
+    for (let i = 0; i < 8; i++) {
       const id = ally[i % ally.length];
       menuScene.walkers.push({ look: G.art.unitLook(id, 1 + (i % 5)), x: 190 + i * 70, y: G.LANE_Y[i % 3] + 10, dir: 1, walk: i, sp: 30 + (i % 3) * 8 });
     }
@@ -55,6 +55,7 @@
     m.t += dt;
     ctx.drawImage(m.bg, 0, 0);
     G.art.mine(ctx, 300, 262, m.t);
+    G.art.gags(ctx, m.W, m.t, G.REGIONS[m.region].id, false);
     G.art.castle(ctx, m.t, 1, -1, 0, false);
     const list = m.walkers.slice().sort((a, b) => a.y - b.y);
     for (const w of list) {
